@@ -20,14 +20,7 @@ router.post('/signup', (req,res) => {
       return res.status(400).json({ email: "Email already exists" });
     } else {
       
-      // // Hash password before saving in database
-      // bcrypt.genSalt(10, (err, salt) => {
-      //   bcrypt.hash(req.body.email, salt, (err, hash) => {
-      //     if (err) throw err;
-
-          
-      //   });
-      // });
+      
 
       //add new user to the db
       const newUser = new User({
@@ -54,9 +47,47 @@ router.post("/login",function (req, res) {
     if (!user) {
       return res.status(404).json({ emailnotfound: "Email not found" });
     }
-    console.log(user)
-   
-    
+    //save session inside the browser
+    app.use(
+  session({
+    name: "session-id",
+    secret: "ASEAFigthers",
+    saveUninitialized: false,
+    resave: false,
+    store:localStorage.setItem(key,value),
+  })
+);
+const port = process.env.PORT || 5000;
+app.use(express.static("public"));
+app.post("/login", async (req, res, next) => {
+  var newUser = {};
+  newUser.email = req.body.email;
+  newUser.password = req.body.password;
+  let user = await populateData.User.findOne({ email: newUser.email });
+  if (!user) {
+    return res.send("That email not exists!");
+  } else {
+    bcrypt.compare(newUser.password, user.password, function (err, result) {
+      if (err) {
+        return res.send(err);
+      } else if (result === true) {
+        req.session.user = user;
+        res.cookie("user", "user", {
+          signed: true,
+          maxAge: 1000 * 60 * 60,
+        });
+        var userInfo = {
+          user: user,
+          result: result,
+        };
+        res.status(200).send(userInfo);
+        next();
+      } else {
+        return res.send(result);
+      }
+    });
+  }
+});
       console.log(user);
       return res.json({exist : true})
   
@@ -64,21 +95,6 @@ router.post("/login",function (req, res) {
   });
 });
 
-//require songs model 
-// const sad = require('../models/songs');
-
-// router.get("/sad",function(req, res) {
-//   sad.find({},(err,songs) => { 
-//     if (err) {
-//       console.log(err)
-      
-//     }
-//     console.log(songs)
-//     return res.json(songs)
-//   });
-//   console.log("hello")
-//   // res.json("hello")
-// });
 
 
 
